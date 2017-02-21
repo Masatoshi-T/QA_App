@@ -235,7 +235,6 @@ public class MainActivity extends AppCompatActivity {
                                             @Override
                                             public void onDataChange(DataSnapshot dataSnapshot) {
                                                 Map data = (Map) dataSnapshot.getValue();
-                                                Log.d("Log_data",String.valueOf(data));
                                                 if (data != null) {
                                                 HashMap map = (HashMap) dataSnapshot.getValue();
                                                 String title = (String) map.get("title");
@@ -268,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
                                                     }
                                                 }
 
-                                                Question question1 = new Question(title, body, name, uid, dataSnapshot.getKey(), Integer.valueOf(genre), bytes, answerArrayList);
+                                                Question question1 = new Question(title, body, name, uid, dataSnapshot.getKey(), Integer.parseInt(genre), bytes, answerArrayList);
                                                 mQuestionArrayList.add(question1);
                                                 mAdapter.notifyDataSetChanged();
                                                 }
