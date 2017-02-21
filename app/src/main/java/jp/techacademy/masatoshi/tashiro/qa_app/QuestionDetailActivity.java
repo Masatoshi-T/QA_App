@@ -21,32 +21,37 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.sackcentury.shinebuttonlib.ShineButton;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import static android.R.attr.breadCrumbShortTitle;
 import static android.R.attr.data;
 import static android.R.attr.factor;
+import static android.R.attr.focusable;
+import static android.R.attr.textIsSelectable;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
     private ListView mListView;
     private Question mQuestion;
     private QuestionDetailListAdapter mAdapter;
-    private ShineButton mShineButton;
-    private Boolean boo;
-    private Boolean isChecked;
-    private String str;
+    private Boolean isChecked = false;
     private ShineButton mFavoriteButton;
-    private int mGenre;
     private String mQuestionUid;
-
     private DatabaseReference mAnswerRef;
+    private int mGenre;
 
-    Map<String, Object> data = new HashMap<String, Object>();
     DatabaseReference mDataBase = FirebaseDatabase.getInstance().getReference();
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -57,13 +62,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
             for(Answer answer : mQuestion.getAnswers()) {
                 // 同じAnswerUidのものが存在しているときは何もしない
-                if (answerUid.equals(answer.getAnswerUid())) {
-                    return;
-                }
+                if (answerUid.equals(answer.getAnswerUid())) { return; }
             }
-
-
-
             String body = (String) map.get("body");
             String name = (String) map.get("name");
             String uid = (String) map.get("uid");
@@ -74,24 +74,16 @@ public class QuestionDetailActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-            Log.d("Log","変更したよ2");
-        }
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) { }
 
         @Override
-        public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-        }
+        public void onChildRemoved(DataSnapshot dataSnapshot) { }
 
         @Override
-        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-        }
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) { }
 
         @Override
-        public void onCancelled(DatabaseError databaseError) {
-
-        }
+        public void onCancelled(DatabaseError databaseError) { }
     };
 
     @Override
@@ -102,11 +94,11 @@ public class QuestionDetailActivity extends AppCompatActivity {
         // 渡ってきたQuestionのオブジェクトを保持する
         Bundle extras = getIntent().getExtras();
         mQuestion = (Question) extras.get("question");
-        mGenre = mQuestion.getGenre();
         mQuestionUid = mQuestion.getQuestionUid();
+        mGenre = mQuestion.getGenre();
         setTitle(mQuestion.getTitle());
 
-        isChecked = Boolean.valueOf(mQuestion.getFavorite());
+        Log.d("Log_detail",String.valueOf(mGenre));
 
         // ListViewの準備
         mListView = (ListView) findViewById(R.id.listView);
@@ -114,58 +106,71 @@ public class QuestionDetailActivity extends AppCompatActivity {
         mListView.setAdapter(mAdapter);
         mAdapter.notifyDataSetChanged();
         mFavoriteButton = (ShineButton) findViewById(R.id.favorite_Button);
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-
+        if ( mFavoriteButton != null) {
+            mFavoriteButton.init(QuestionDetailActivity.this);
+            mFavoriteButton.setChecked(isChecked);
+        }
         if (user != null) {
             mFavoriteButton.setVisibility(View.VISIBLE);
-            if (mGenre == 0) {
-                mFavoriteButton.setVisibility(View.GONE);
-            } else {
-                mFavoriteButton.setVisibility(View.VISIBLE);
-            }
-            mFavoriteButton.setEnabled(true);
-            if ( mFavoriteButton != null) {
-                Log.d("Log", "起動");
-                Log.d("Log",isChecked.toString());
-                mFavoriteButton.init(this);
-                mFavoriteButton.setChecked(isChecked);
-            }
-            mFavoriteButton.setChecked(isChecked);
-
-            mFavoriteButton.setOnClickListener(new View.OnClickListener() {
+            DatabaseReference userRef = mDataBase.child(Const.UsersPATH).child(user.getUid());
+            DatabaseReference favoriteRef = userRef.child("favorite");
+            favoriteRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
-                public void onClick(View view) {
-                    if (!isChecked){
-                        isChecked = true;
-                        mFavoriteButton.setChecked(isChecked);
-                        data.put("favorite", "true");
-                        Log.d("Log","true");
-                    } else {
-                        isChecked = false;
-                        mFavoriteButton.setChecked(isChecked);
-                        data.put("favorite", "false");
-                        Log.d("Log","false");
-                    }
-                mDataBase.child(Const.ContentsPATH).child(String.valueOf(mGenre)).child(mQuestionUid).updateChildren(data);
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                final Map data = (Map) dataSnapshot.getValue();
+                if (data == null || data.get(mQuestionUid) == null) {
+                    isChecked = false;
+                } else {
+                    isChecked = true;
                 }
+                    mFavoriteButton.setChecked(isChecked);
+                    mFavoriteButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if (!isChecked) {
+                                isChecked = true;
+                                mFavoriteButton.setChecked(isChecked);
+                                DatabaseReference userRef = mDataBase.child(Const.UsersPATH).child(user.getUid());
+                                userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        Map data = (Map) dataSnapshot.getValue();
+                                        if (data.get(mQuestionUid) == null) {
+                                            Map<String, Object> data1 = new HashMap<String, Object>();
+                                            data1.put(mQuestionUid, mQuestionUid);
+                                            DatabaseReference userRef = mDataBase.child(Const.UsersPATH).child(user.getUid());
+                                            DatabaseReference favoriteRef = userRef.child("favorite");
+                                            favoriteRef.updateChildren(data1);
+                                        }
+                                    }
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) { }
+                                });
+                            } else {
+                                isChecked = false;
+                                mFavoriteButton.setChecked(isChecked);
+                                Map<String, Object> data1 = new HashMap<String, Object>();
+                                data1.put(mQuestionUid,null);
+                                DatabaseReference userRef = mDataBase.child(Const.UsersPATH).child(user.getUid());
+                                DatabaseReference favoriteRef = userRef.child("favorite");
+                                favoriteRef.updateChildren(data1);
+                            }
+                        }
+                    });
+                }
+                @Override
+                public void onCancelled(DatabaseError databaseError) { }
             });
-        } else {
+        }else {
             mFavoriteButton.setVisibility(View.GONE);
-            mFavoriteButton.setEnabled(false);
         }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        if (mGenre == 0) {
-            fab.setVisibility(View.GONE);
-        } else {
-            fab.setVisibility(View.VISIBLE);
-        }
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 // ログイン済みのユーザーを収録する
-                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
                 if (user == null) {
                     // ログインしていなければログイン画面に遷移させる
@@ -175,6 +180,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
                     // Questionを渡して回答作成画面を起動する
                     Intent intent = new Intent(getApplicationContext(), AnswerSendActivity.class);
                     intent.putExtra("question", mQuestion);
+                    intent.putExtra("genre",mGenre);
                     startActivity(intent);
                 }
             }

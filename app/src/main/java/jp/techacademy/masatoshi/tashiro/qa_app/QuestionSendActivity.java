@@ -50,6 +50,7 @@ public class QuestionSendActivity extends AppCompatActivity implements View.OnCl
     private int mGenre;
     private Uri mPictureUri;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,7 +58,7 @@ public class QuestionSendActivity extends AppCompatActivity implements View.OnCl
 
         // 渡ってきたジャンルの番号を保持する
         Bundle extras = getIntent().getExtras();
-        mGenre = extras.getInt("genre");
+        mGenre = (Integer)extras.getInt("genre");
 
         // UIの準備
         setTitle("質問作成");
@@ -145,7 +146,7 @@ public class QuestionSendActivity extends AppCompatActivity implements View.OnCl
             DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
             DatabaseReference genreRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mGenre));
 
-            Map<String, String> data = new HashMap<String, String>();
+            Map<String, Object> data = new HashMap<String, Object>();
 
             // UID
             data.put("uid", FirebaseAuth.getInstance().getCurrentUser().getUid());
@@ -173,7 +174,7 @@ public class QuestionSendActivity extends AppCompatActivity implements View.OnCl
             data.put("title", title);
             data.put("body", body);
             data.put("name", name);
-            data.put("favorite", "false");
+            data.put("genre", mGenre);
 
             // 添付画像を取得する
             BitmapDrawable drawable = (BitmapDrawable) mImageView.getDrawable();

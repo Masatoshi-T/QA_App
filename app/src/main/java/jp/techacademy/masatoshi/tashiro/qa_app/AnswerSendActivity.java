@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -25,6 +26,7 @@ public class AnswerSendActivity extends AppCompatActivity implements View.OnClic
     private EditText mAnswerEditText;
     private Question mQuestion;
     private ProgressDialog mProgress;
+    private int mGenre;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +36,8 @@ public class AnswerSendActivity extends AppCompatActivity implements View.OnClic
         // 渡ってきたQuestionのオブジェクトを保持する
         Bundle extras = getIntent().getExtras();
         mQuestion = (Question) extras.get("question");
+        mGenre = (int) extras.get("genre");
+        Log.d("Log_ans",String.valueOf(mGenre));
 
         // UIの準備
         mAnswerEditText = (EditText) findViewById(R.id.answerEditText);
